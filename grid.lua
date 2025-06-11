@@ -34,12 +34,12 @@ function grid:inBounds(x, y)
 end
 
 function grid:get(x, y)
-    if not self.inBounds(x, y) then return nil end
+    if not self:inBounds(x, y) then return nil end
     return self.data[x + self.width * y]
 end
 
 function grid:set(x, y, v)
-    if not self.inBounds(x, y) then return nil end
+    if not self:inBounds(x, y) then return end
     self.data[x + self.width * y] = v
 end
 

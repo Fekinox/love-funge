@@ -12,10 +12,25 @@ function funge.initialize()
     funge.layout(w, h)
 
     funge.mouseLocation = nil
+    funge.character = nil
+
+    funge.active = false
+    funge.programState = nil
 end
 
 function funge.layout(w, h)
     funge.gridOrigin = { (w - GRID_WIDTH * CELL_WIDTH) / 2, (h - GRID_HEIGHT * CELL_WIDTH) / 2 }
+    funge.buttonOrigin = { funge.gridOrigin[1], funge.gridOrigin[2] + 30 }
+end
+
+function funge.textinput(text)
+    if text == " " then
+        funge.character = nil
+    end
+    funge.character = text
+end
+
+function funge.keypressed(key, scancode)
 end
 
 function funge.keyreleased(key, scancode)
@@ -23,10 +38,16 @@ end
 
 function funge.mousemoved(x, y, dx, dy, istouch)
     funge.setMouseLocation(x, y)
+    if funge.mouseLocation ~= nil and love.mouse.isDown(1) then
+        funge.grid:set(funge.mouseLocation[1], funge.mouseLocation[2], funge.character)
+    end
 end
 
 function funge.mousepressed(x, y, button, istouch, presses)
     funge.setMouseLocation(x, y)
+    if funge.mouseLocation ~= nil then
+        funge.grid:set(funge.mouseLocation[1], funge.mouseLocation[2], funge.character)
+    end
 end
 
 function funge.mousereleased(x, y, button, istouch, presses)
@@ -40,10 +61,11 @@ function funge.draw()
     local fg = { love.math.colorFromBytes(255, 255, 255) }
     local bg = { love.math.colorFromBytes(0, 0, 0) }
     for x, y, v in funge.grid:iterator() do
-        local f, b
+        local f, b, hl
         if funge.mouseLocation ~= nil and
             x == funge.mouseLocation[1] and y == funge.mouseLocation[2] then
             f, b = bg, fg
+            hl = true
         else
             f, b = fg, bg
         end
@@ -59,7 +81,19 @@ function funge.draw()
             funge.gridOrigin[2] + (y - 1) * CELL_WIDTH,
             CELL_WIDTH,
             CELL_WIDTH)
+        if v then
+            love.graphics.print(v,
+                funge.gridOrigin[1] + (x - 1) * CELL_WIDTH,
+                funge.gridOrigin[2] + (y - 1) * CELL_WIDTH)
+        elseif hl and funge.character then
+            love.graphics.print(funge.character,
+                funge.gridOrigin[1] + (x - 1) * CELL_WIDTH,
+                funge.gridOrigin[2] + (y - 1) * CELL_WIDTH)
+        end
     end
+
+    -- Buttons
+    
 end
 
 function funge.resize(w, h)

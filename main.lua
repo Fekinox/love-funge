@@ -4,6 +4,14 @@ function love.load()
     funge.initialize()
 end
 
+function love.textinput(text)
+    funge.textinput(text)
+end
+
+function love.keypressed(key, scancode)
+    funge.keypressed(key, scancode)
+end
+
 function love.keyreleased(key, scancode)
     funge.keyreleased(key, scancode)
 end
