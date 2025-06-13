@@ -1,26 +1,38 @@
 local grid = require("grid")
+local button = require("button")
+local programState = require("programState")
+
 local funge = {}
 
 CELL_WIDTH = 20
 GRID_WIDTH = 20
 GRID_HEIGHT = 20
 
+SIMULATION_SPEED = 0.1
+
 function funge.initialize()
     funge.grid = grid:new(GRID_WIDTH, GRID_HEIGHT, nil)
 
-    local w, h = love.graphics.getDimensions()
-    funge.layout(w, h)
 
     funge.mouseLocation = nil
     funge.character = nil
 
-    funge.active = false
-    funge.programState = nil
+    funge.startButton = button:new(100, 40, "start", funge.startProgram)
+    funge.stepButton = button:new(100, 40, "step", funge.stepProgram)
+    funge.pauseButton = button:new(100, 40, "pause", funge.pauseProgram)
+
+    funge.progState = nil
+
+    local w, h = love.graphics.getDimensions()
+    funge.layout(w, h)
 end
 
 function funge.layout(w, h)
     funge.gridOrigin = { (w - GRID_WIDTH * CELL_WIDTH) / 2, (h - GRID_HEIGHT * CELL_WIDTH) / 2 }
-    funge.buttonOrigin = { funge.gridOrigin[1], funge.gridOrigin[2] + 30 }
+    funge.buttonOrigin = { funge.gridOrigin[1], funge.gridOrigin[2] - 50 }
+    funge.startButton:layout(funge.buttonOrigin[1], funge.buttonOrigin[2])
+    funge.stepButton:layout(funge.buttonOrigin[1] + 120, funge.buttonOrigin[2])
+    funge.pauseButton:layout(funge.buttonOrigin[1] + 240, funge.buttonOrigin[2])
 end
 
 function funge.textinput(text)
@@ -38,14 +50,14 @@ end
 
 function funge.mousemoved(x, y, dx, dy, istouch)
     funge.setMouseLocation(x, y)
-    if funge.mouseLocation ~= nil and love.mouse.isDown(1) then
+    if funge.progState == nil and funge.mouseLocation ~= nil and love.mouse.isDown(1) then
         funge.grid:set(funge.mouseLocation[1], funge.mouseLocation[2], funge.character)
     end
 end
 
 function funge.mousepressed(x, y, button, istouch, presses)
     funge.setMouseLocation(x, y)
-    if funge.mouseLocation ~= nil then
+    if funge.progState == nil and funge.mouseLocation ~= nil then
         funge.grid:set(funge.mouseLocation[1], funge.mouseLocation[2], funge.character)
     end
 end
@@ -54,7 +66,31 @@ function funge.mousereleased(x, y, button, istouch, presses)
     funge.setMouseLocation(x, y)
 end
 
+function funge.startProgram()
+    if funge.progState == nil then
+        funge.progState = {
+            active = true,
+            timer = 0,
+
+            state = programState:new()
+        }
+    else
+        funge.progState = nil
+    end
+end
+
 function funge.update(dt)
+    funge.startButton:update(dt)
+    funge.stepButton:update(dt)
+    funge.pauseButton:update(dt)
+
+    if funge.progState ~= nil and funge.progState.active then
+        funge.progState.timer = funge.progState.timer + dt
+        while funge.progState.timer > SIMULATION_SPEED do
+            funge.progState.state:update(funge.grid)
+            funge.progState.timer = funge.progState.timer - SIMULATION_SPEED
+        end
+    end
 end
 
 function funge.draw()
@@ -62,7 +98,7 @@ function funge.draw()
     local bg = { love.math.colorFromBytes(0, 0, 0) }
     for x, y, v in funge.grid:iterator() do
         local f, b, hl
-        if funge.mouseLocation ~= nil and
+        if funge.progState == nil and funge.mouseLocation ~= nil and
             x == funge.mouseLocation[1] and y == funge.mouseLocation[2] then
             f, b = bg, fg
             hl = true
@@ -93,7 +129,19 @@ function funge.draw()
     end
 
     -- Buttons
-    
+    funge.startButton:draw()
+    funge.stepButton:draw()
+    funge.pauseButton:draw()
+
+    -- Cursor
+    if funge.progState ~= nil then
+        local xx, yy = funge.progState.state.x, funge.progState.state.y
+        love.graphics.rectangle("line",
+            funge.gridOrigin[1] + (xx - 1) * CELL_WIDTH - 5,
+            funge.gridOrigin[2] + (yy - 1) * CELL_WIDTH - 5,
+            CELL_WIDTH + 10,
+            CELL_WIDTH + 10)
+    end
 end
 
 function funge.resize(w, h)
